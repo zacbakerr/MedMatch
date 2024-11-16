@@ -1,70 +1,78 @@
+import os
 import openai
 from typing import Dict, Any
+from data.agent_class import HealthcareFacility
 
 class IncomingAgent:
-    def __init__(self, specialist_facility):
+    def __init__(self, facility: HealthcareFacility):
         """
         Initialize incoming agent for a specialist facility
         
         Args:
-            specialist_facility: Class instance containing specialist facility details
+            facility: HealthcareFacility instance containing facility details
         """
-        self.facility = specialist_facility
+        self.facility = facility
         
     def get_facility_info(self) -> Dict[str, Any]:
         """Get basic facility information"""
         return {
-            "name": self.facility.name,
-            "specialty": self.facility.specialty,
-            "location": self.facility.location,
-            "waiting_time": self.facility.get_waiting_time(),
-            "available_equipment": self.facility.get_equipment(),
-            "next_available_slot": self.facility.get_next_slot()
+            "name": self.facility.get_facility_name(),
+            "location": self.facility.get_location(),
+            "available_slots": self.facility.get_availability(),
+            "facilities": self.facility.get_facilities(),
+            "price": self.facility.get_price()
         }
     
-    async def evaluate_patient_case(self, patient_condition: Dict, requirements: Dict) -> Dict[str, Any]:
+    def evaluate_patient_case(self, patient_condition: str) -> Dict[str, Any]:
         """
         Evaluate patient case using AI to analyze facility capabilities
         """
         facility_info = self.get_facility_info()
         
+        # Initialize OpenAI client with API key
+        client = openai.OpenAI(
+            api_key=os.getenv('OPENAI_API_KEY')
+        )
+        
         prompt = f"""
-        As a specialist facility ({self.facility.specialty}), evaluate this patient case:
+        As a specialist facility ({facility_info['name']}), evaluate this patient case:
         
         Patient Condition: {patient_condition}
-        Requirements: {requirements}
         
         Our Facility Information:
         - Name: {facility_info['name']}
-        - Equipment: {facility_info['available_equipment']}
-        - Current Wait Time: {facility_info['waiting_time']}
-        - Next Available Slot: {facility_info['next_available_slot']}
+        - Available Equipment/Services: {facility_info['facilities']}
+        - Available Slots: {facility_info['available_slots']}
         
         Analyze if we can handle this case and provide:
-        1. Capability score (0-10)
+        1. Capability score (0-100) - How well equipped we are to handle this specific case
         2. Whether we can provide specialized treatment
         3. Estimated treatment duration
-        4. Cost estimate
-        5. Detailed reasoning
+        4. Detailed reasoning for the evaluation
+        
+        The score MUST be on a scale of 0 to 100, where:
+        0 = Cannot handle the case at all
+        25 = Basic capability but not ideal
+        50 = Average capability
+        75 = Good capability with most required services
+        100 = Perfect match with all specialized services needed
+        
+        Focus only on medical suitability and availability.
+        Include the numerical score (0-100) at the start of your response.
         """
         
-        response = await openai.ChatCompletion.acreate(
-            model="gpt-4",
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a medical specialist facility evaluating a patient referral."},
+                {"role": "system", "content": "You are a healthcare facility evaluator. Always include a numerical score between 0-100 at the start of your response."},
                 {"role": "user", "content": prompt}
             ]
         )
         
         # Parse AI response to extract evaluation metrics
         ai_evaluation = response.choices[0].message.content
-        capability_score = self.facility.assess_patient_suitability(patient_condition)
         
         return {
-            "can_handle": capability_score > 0,
-            "capability_score": capability_score,
-            "specialized_treatment_available": self.facility.check_treatment_availability(patient_condition),
-            "estimated_treatment_duration": self.facility.estimate_treatment_duration(patient_condition),
-            "cost_estimate": self.facility.estimate_cost(patient_condition),
+            "facility_info": facility_info,
             "ai_evaluation": ai_evaluation
         }

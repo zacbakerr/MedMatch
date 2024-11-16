@@ -58,7 +58,7 @@ class OutgoingAgent:
         Explain your scoring reasoning.
         """
         
-        response = await openai.ChatCompletion.acreate(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a GP evaluating specialist facilities for patient referral."},
