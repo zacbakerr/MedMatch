@@ -48,7 +48,7 @@ def calculate_distance_decay(travel_time_minutes: int, max_acceptable_time: int 
         float: Decay factor between 0 and 1
     """
     if travel_time_minutes is None:
-        return 0.0
+        return 1.0
     
     if travel_time_minutes <= max_acceptable_time:
         # Linear decay up to max_acceptable_time
