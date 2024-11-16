@@ -32,16 +32,16 @@ class ReferralMatcher:
         facility_info = agent.get_facility_info()
         
         # Early budget check
-        if facility_info['price'] > patient_search.get_budget():
-            self.conversation_results[agent] = {
-                "score": 0,
-                "facility_info": facility_info,
-                "evaluation": None,
-                "reason": "Facility excluded due to budget constraints",
-                "travel_time": None,
-                "distance": None
-            }
-            return
+        # if facility_info['price'] > patient_search.get_budget():
+        #     self.conversation_results[agent] = {
+        #         "score": 0,
+        #         "facility_info": facility_info,
+        #         "evaluation": None,
+        #         "reason": "Facility excluded due to budget constraints",
+        #         "travel_time": None,
+        #         "distance": None
+        #     }
+        #     return
         
         # Get facility's evaluation of the patient case
         evaluation = agent.evaluate_patient_case(patient_search.get_condition())
