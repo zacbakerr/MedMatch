@@ -1,10 +1,30 @@
+import openai
+from typing import Dict, Any
 from .utils import DistanceCalculator, calculate_distance_decay
 
 class OutgoingAgent:
     def __init__(self, gp_facility):
+        """
+        Initialize outgoing agent for a GP facility
+        
+        Args:
+            gp_facility: Class instance containing GP facility details
+        """
         self.gp = gp_facility
         self.conversation_scores = {}
         self.distance_calculator = DistanceCalculator()
+        
+    def get_patient_info(self, patient_id: str) -> Dict[str, Any]:
+        """
+        Get patient information from GP records
+        
+        Args:
+            patient_id: Unique identifier for the patient
+            
+        Returns:
+            dict: Patient information and medical requirements
+        """
+        return self.gp.get_patient_details(patient_id)
     
     async def evaluate_specialist_response(self, specialist_response: Dict, patient_info: Dict) -> float:
         """
@@ -38,7 +58,7 @@ class OutgoingAgent:
         Explain your scoring reasoning.
         """
         
-        response = await openai.ChatCompletion.acreate(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a GP evaluating specialist facilities for patient referral."},
@@ -63,4 +83,19 @@ class OutgoingAgent:
         # Apply decay factor to base score
         final_score = base_score * decay_factor
         
-        return final_score 
+        return final_score
+    
+    def _parse_ai_score(self, ai_evaluation: str) -> float:
+        """Extract numerical score from AI evaluation text"""
+        # Implement parsing logic to extract score from AI response
+        # This is a simplified example
+        try:
+            # Look for a number between 0 and 100 in the text
+            import re
+            scores = re.findall(r'\b([0-9]{1,3})\b', ai_evaluation)
+            if scores:
+                score = float(scores[0])
+                return min(max(score, 0), 100) / 100  # Normalize to 0-1
+        except:
+            pass
+        return 0.0

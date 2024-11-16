@@ -1,0 +1,6 @@
+openai
+typing
+googlemaps
+supabase
+flask
+flask_cors

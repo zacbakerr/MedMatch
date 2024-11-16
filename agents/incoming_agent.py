@@ -5,16 +5,9 @@ from data.agent_class import HealthcareFacility
 
 class IncomingAgent:
     def __init__(self, facility: HealthcareFacility):
-        """
-        Initialize incoming agent for a specialist facility
-        
-        Args:
-            facility: HealthcareFacility instance containing facility details
-        """
         self.facility = facility
         
     def get_facility_info(self) -> Dict[str, Any]:
-        """Get basic facility information"""
         return {
             "name": self.facility.get_facility_name(),
             "location": self.facility.get_location(),
@@ -24,55 +17,65 @@ class IncomingAgent:
         }
     
     def evaluate_patient_case(self, patient_condition: str) -> Dict[str, Any]:
-        """
-        Evaluate patient case using AI to analyze facility capabilities
-        """
         facility_info = self.get_facility_info()
         
-        # Initialize OpenAI client with API key
         client = openai.OpenAI(
             api_key=os.getenv('OPENAI_API_KEY')
         )
         
         prompt = f"""
-        As a specialist facility ({facility_info['name']}), evaluate this patient case:
+        As a specialist facility ({facility_info['name']}), evaluate if we have the EXACT facilities and expertise to treat this specific condition:
         
         Patient Condition: {patient_condition}
         
-        Our Facility Information:
-        - Name: {facility_info['name']}
-        - Available Equipment/Services: {facility_info['facilities']}
-        - Available Slots: {facility_info['available_slots']}
+        Our Available Equipment/Services:
+        {facility_info['facilities']}
         
-        Analyze if we can handle this case and provide:
-        1. Capability score (0-100) - How well equipped we are to handle this specific case
-        2. Whether we can provide specialized treatment
-        3. Estimated treatment duration
-        4. Detailed reasoning for the evaluation
+        Analyze our capability and provide:
+        1. Capability score (0-100) based ONLY on our SPECIFIC ability to treat this EXACT condition
+        2. List the SPECIFIC equipment/expertise we have that DIRECTLY treats this condition
+        3. List what aspects of the condition we CANNOT treat
+        4. Explain why we should or should not treat this patient
         
         The score MUST be on a scale of 0 to 100, where:
-        0 = Cannot handle the case at all
-        25 = Basic capability but not ideal
-        50 = Average capability
-        75 = Good capability with most required services
-        100 = Perfect match with all specialized services needed
+        0-15 = We do not have specific facilities/expertise for this condition
+        16-30 = We have very basic facilities that might help, but are not designed for this
+        31-50 = We have some relevant facilities but lack specialized treatment options
+        51-70 = We have most necessary facilities but aren't specialized in this condition
+        71-85 = We specialize in this exact condition with proper facilities
+        86-100 = We are a dedicated center of excellence for this specific condition
         
-        Focus only on medical suitability and availability.
+        CRITICAL SCORING RULES:
+        - Score ZERO if we don't have specific treatment facilities for the exact condition
+        - General care facilities are worth maximum 15 points
+        - "Nice environment" or "24/7 care" is worth ZERO points
+        - Supporting facilities (e.g., general medical care) are worth maximum 10 additional points
+        - Scores above 70 require PROOF that we specifically treat this condition
+        - Scores above 85 require PROOF that we are a dedicated facility for this condition
+        
+        Example:
+        - A general hospital gets 15 for addiction (no specific treatment)
+        - A care home gets 0 for addiction (no treatment facilities)
+        - An addiction center gets 80 for addiction (specific treatment)
+        - A specialized addiction hospital gets 95 (dedicated facility)
+        
+        BE EXTREMELY STRICT. When in doubt, score lower.
         Include the numerical score (0-100) at the start of your response.
         """
         
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a healthcare facility evaluator. Always include a numerical score between 0-100 at the start of your response."},
+                {"role": "system", "content": "You are an extremely strict medical facility evaluator. Your job is to ensure patients are sent ONLY to facilities that can directly treat their specific condition. General care facilities should score near zero unless they have specific treatment capabilities for the exact condition."},
                 {"role": "user", "content": prompt}
             ]
         )
         
-        # Parse AI response to extract evaluation metrics
         ai_evaluation = response.choices[0].message.content
+
+        print(ai_evaluation)
         
         return {
             "facility_info": facility_info,
             "ai_evaluation": ai_evaluation
-        }
+        } 

@@ -4,7 +4,7 @@ import os
 
 class DistanceCalculator:
     def __init__(self):
-        self.gmaps = googlemaps.Client(key=os.getenv('GOOGLE_MAPS_API_KEY'))
+        self.gmaps = googlemaps.Client(key='AIzaSyAtAgnJbt2c7QX72BFsM4kluy7Z0AA-jAo')
     
     def calculate_travel_time(self, origin: str, destination: str) -> Tuple[int, float]:
         """
@@ -48,7 +48,7 @@ def calculate_distance_decay(travel_time_minutes: int, max_acceptable_time: int 
         float: Decay factor between 0 and 1
     """
     if travel_time_minutes is None:
-        return 0.0
+        return 1.0
     
     if travel_time_minutes <= max_acceptable_time:
         # Linear decay up to max_acceptable_time
