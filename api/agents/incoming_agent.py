@@ -27,50 +27,44 @@ class IncomingAgent:
         """
         Evaluate patient case using AI to analyze facility capabilities
         """
-        facility_info = self.get_facility_info()
-        
         # Initialize OpenAI client with API key
         client = openai.OpenAI(
-            api_key=os.getenv('OPENAI_API_KEY')
+            api_key="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"
         )
         
+        facility_info = self.get_facility_info()
+        
+        # Prepare the prompt with facility information
         prompt = f"""
-        As a specialist facility ({facility_info['name']}), evaluate this patient case:
-        
-        Patient Condition: {patient_condition}
-        
-        Our Facility Information:
+        As a healthcare evaluator, analyze this facility for the patient condition: {patient_condition}
+
+        Facility Information:
         - Name: {facility_info['name']}
-        - Available Equipment/Services: {facility_info['facilities']}
+        - Location: {facility_info['location']}
         - Available Slots: {facility_info['available_slots']}
-        
-        Analyze if we can handle this case and provide:
-        1. Capability score (0-100) - How well equipped we are to handle this specific case
-        2. Whether we can provide specialized treatment
-        3. Estimated treatment duration
-        4. Detailed reasoning for the evaluation
-        
-        The score MUST be on a scale of 0 to 100, where:
-        0 = Cannot handle the case at all
-        25 = Basic capability but not ideal
-        50 = Average capability
-        75 = Good capability with most required services
-        100 = Perfect match with all specialized services needed
-        
-        Focus only on medical suitability and availability.
-        Include the numerical score (0-100) at the start of your response.
+        - Facilities: {facility_info['facilities']}
+        - Price: {facility_info['price']}
+
+        Provide a score from 0-100 based on how well the facility matches the patient's needs.
+        Return response in this exact JSON format:
+        {{
+            "score": <number>,
+            "reasoning": "<one sentence explanation>"
+        }}
         """
-        
+
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a healthcare facility evaluator. Always include a numerical score between 0-100 at the start of your response."},
+                {"role": "system", "content": "You are a healthcare evaluator. Provide a concise JSON response."},
                 {"role": "user", "content": prompt}
             ]
         )
         
-        # Parse AI response to extract evaluation metrics
+        # Parse AI response
         ai_evaluation = response.choices[0].message.content
+
+        print(ai_evaluation)
         
         return {
             "facility_info": facility_info,
